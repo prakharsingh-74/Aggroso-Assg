@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { insforge } from '@/lib/insforge';
 import crypto from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
@@ -26,20 +26,14 @@ async function processFile(file: File, type: string, projectId: string) {
   
   await fs.writeFile(filePath, buffer);
 
-  return prisma.document.create({
-    data: {
-      projectId,
-      type,
-      filename: file.name,
-      fileHash: hash,
-      // We will store the internal physical path in fileHash or a separate field? 
-      // Actually, we don't have a path field in the schema, let's just append it to the hash field or add it?
-      // Wait, let's keep the schema simple and use `id` to lookup the file later. We can just save it as `${id}.pdf`.
-      // Since we don't have the ID yet, we save it with a UUID, and maybe rename it later, but wait, we need to read it later.
-      // Let's modify the schema slightly or just store it in a known location by `fileHash`. 
-      // Yes, saving as `${hash}.pdf` is deterministic and allows deduplication!
-    },
-  });
+  const { data: document, error } = await insforge.from('documents').insert([{
+    project_id: projectId,
+    type,
+    filename: file.name,
+    file_hash: hash,
+  }]).select().single();
+  if (error) throw error;
+  return document;
 }
 
 export async function POST(req: NextRequest) {
@@ -57,10 +51,12 @@ export async function POST(req: NextRequest) {
 
     const projectName = `Review - ${new Date().toLocaleString()}`;
 
-    // Create project
-    const project = await prisma.project.create({
-      data: { name: projectName }
-    });
+    const { data: project, error: projectError } = await insforge
+      .from('projects')
+      .insert([{ name: projectName }])
+      .select()
+      .single();
+    if (projectError) throw projectError;
 
     // We'll save files using their hash as the filename to make retrieval easy and deterministic
     const saveFileWithHash = async (file: File, type: string) => {
@@ -76,14 +72,14 @@ export async function POST(req: NextRequest) {
         await fs.writeFile(filePath, buffer);
       }
 
-      return prisma.document.create({
-        data: {
-          projectId: project.id,
-          type,
-          filename: file.name,
-          fileHash: hash,
-        },
-      });
+      const { data: document, error } = await insforge.from('documents').insert([{
+        project_id: project.id,
+        type,
+        filename: file.name,
+        file_hash: hash,
+      }]).select().single();
+      if (error) throw error;
+      return document;
     };
 
     await saveFileWithHash(guideline, 'GUIDELINE');

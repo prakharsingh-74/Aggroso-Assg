@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { prisma } from '@/lib/prisma';
+import { insforge } from '@/lib/insforge';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,24 +8,28 @@ import { FileText, CheckCircle, AlertTriangle, XCircle, HelpCircle } from 'lucid
 import RequirementCard from './RequirementCard';
 
 export default async function ReviewDashboard({ params }: { params: { projectId: string } }) {
-  const project = await prisma.project.findUnique({
-    where: { id: params.projectId },
-    include: {
-      assessments: {
-        orderBy: { createdAt: 'desc' },
-        take: 1,
-        include: {
-          mappings: {
-            include: { requirement: true, evidence: true, reviewActions: true }
-          }
-        }
-      }
-    }
-  });
+  const { data: project, error } = await insforge
+    .from('projects')
+    .select(`
+      *,
+      assessments (
+        *,
+        mappings:evidence_mappings (
+          *,
+          requirement:requirements(*),
+          evidence:evidences(*),
+          reviewActions:review_actions(*)
+        )
+      )
+    `)
+    .eq('id', params.projectId)
+    .single();
 
-  if (!project) return notFound();
+  if (!project || error) return notFound();
 
-  const assessment = project.assessments[0];
+  // Get the most recent assessment
+  const sortedAssessments = (project.assessments || []).sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  const assessment = sortedAssessments[0];
   if (!assessment) {
     return (
       <div className="p-12 text-center">
@@ -39,10 +43,11 @@ export default async function ReviewDashboard({ params }: { params: { projectId:
   let totalMandatory = 0;
   let completeMandatory = 0;
 
-  assessment.mappings.forEach(mapping => {
+  (assessment.mappings || []).forEach((mapping: any) => {
     // Human corrections take precedence
-    const lastAction = mapping.reviewActions.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
-    const finalStatus = lastAction ? lastAction.newStatus : mapping.status;
+    const actions = mapping.reviewActions || [];
+    const lastAction = actions.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+    const finalStatus = lastAction ? lastAction.new_status : mapping.status;
     
     if (mapping.requirement.importance === 'mandatory' && finalStatus !== 'not_applicable') {
       totalMandatory++;
@@ -112,10 +117,10 @@ export default async function ReviewDashboard({ params }: { params: { projectId:
           </TabsList>
           
           <TabsContent value="requirements" className="space-y-4 outline-none">
-            {assessment.mappings.map(mapping => (
+            {(assessment.mappings || []).map((mapping: any) => (
               <RequirementCard key={mapping.id} mapping={mapping} />
             ))}
-            {assessment.mappings.length === 0 && (
+            {!(assessment.mappings?.length) && (
               <div className="text-center py-12 text-slate-500 border rounded-lg bg-white shadow-sm">
                 No requirements mapped yet.
               </div>
