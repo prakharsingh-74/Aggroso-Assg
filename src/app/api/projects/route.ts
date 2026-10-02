@@ -26,7 +26,7 @@ async function processFile(file: File, type: string, projectId: string) {
   
   await fs.writeFile(filePath, buffer);
 
-  const { data: document, error } = await insforge.from('documents').insert([{
+  const { data: document, error } = await insforge.database.from('documents').insert([{
     project_id: projectId,
     type,
     filename: file.name,
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
 
     const projectName = `Review - ${new Date().toLocaleString()}`;
 
-    const { data: project, error: projectError } = await insforge
+    const { data: project, error: projectError } = await insforge.database
       .from('projects')
       .insert([{ name: projectName }])
       .select()
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
         await fs.writeFile(filePath, buffer);
       }
 
-      const { data: document, error } = await insforge.from('documents').insert([{
+      const { data: document, error } = await insforge.database.from('documents').insert([{
         project_id: project.id,
         type,
         filename: file.name,

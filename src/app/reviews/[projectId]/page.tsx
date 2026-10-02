@@ -1,14 +1,14 @@
 import { notFound } from 'next/navigation';
 import { insforge } from '@/lib/insforge';
 import { Progress } from '@/components/ui/progress';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, CheckCircle, AlertTriangle, XCircle, HelpCircle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import RequirementCard from './RequirementCard';
 
 export default async function ReviewDashboard({ params }: { params: { projectId: string } }) {
-  const { data: project, error } = await insforge
+  const { data: project, error } = await insforge.database
     .from('projects')
     .select(`
       *,
