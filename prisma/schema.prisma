@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Project {
+  id                      String                  @id @default(cuid())
+  name                    String
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+  documents               Document[]
+  assessments             Assessment[]
+  requirements            Requirement[]
+  supportingDocumentTrackers SupportingDocumentTracker[]
+}
+
+model Document {
+  id               String           @id @default(cuid())
+  projectId        String
+  project          Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type             String           // "GUIDELINE", "DRAFT_APPLICATION", "SUPPORTING"
+  filename         String
+  fileHash         String
+  uploadedAt       DateTime         @default(now())
+  pages            DocumentPage[]
+  requirements     Requirement[]    // For guidelines
+  assessmentsGuideline Assessment[] @relation("GuidelineDocument")
+  assessmentsApp       Assessment[] @relation("AppDocument")
+}
+
+model DocumentPage {
+  id               String           @id @default(cuid())
+  documentId       String
+  document         Document         @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  pageNumber       Int
+  text             String
+}
+
+model Requirement {
+  id               String           @id @default(cuid())
+  projectId        String
+  project          Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sourceDocumentId String?
+  sourceDocument   Document?        @relation(fields: [sourceDocumentId], references: [id], onDelete: SetNull)
+  text             String
+  category         String
+  importance       String           // "mandatory", "recommended", "informational"
+  evidenceExpected String?
+  sourcePageNumber Int?
+  sourceQuote      String?
+  mappings         EvidenceMapping[]
+}
+
+model Assessment {
+  id                      String                  @id @default(cuid())
+  projectId               String
+  project                 Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  guidelineId             String
+  guideline               Document                @relation("GuidelineDocument", fields: [guidelineId], references: [id])
+  applicationId           String
+  application             Document                @relation("AppDocument", fields: [applicationId], references: [id])
+  status                  String                  // "ACTIVE", "STALE", "COMPLETED"
+  completionPercentage    Float?
+  createdAt               DateTime                @default(now())
+  mappings                EvidenceMapping[]
+  unsupportedClaims       UnsupportedClaim[]
+  clarificationQuestions  ClarificationQuestion[]
+}
+
+model EvidenceMapping {
+  id               String           @id @default(cuid())
+  assessmentId     String
+  assessment       Assessment       @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  requirementId    String
+  requirement      Requirement      @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  status           String           // "complete", "weak", "missing", "not_applicable"
+  explanation      String
+  missingEvidence  String?
+  confidence       String           // "high", "medium", "low"
+  evidence         Evidence[]
+  reviewActions    ReviewAction[]
+}
+
+model Evidence {
+  id               String           @id @default(cuid())
+  mappingId        String
+  mapping          EvidenceMapping  @relation(fields: [mappingId], references: [id], onDelete: Cascade)
+  documentId       String
+  pageNumber       Int
+  quote            String
+}
+
+model UnsupportedClaim {
+  id                      String      @id @default(cuid())
+  assessmentId            String
+  assessment              Assessment  @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  claim                   String
+  documentId              String
+  pageNumber              Int
+  quote                   String
+  explanation             String
+  supportingEvidenceFound Boolean
+  suggestedEvidence       String?
+}
+
+model ClarificationQuestion {
+  id               String      @id @default(cuid())
+  assessmentId     String
+  assessment       Assessment  @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  question         String
+  context          String?
+}
+
+model SupportingDocumentTracker {
+  id               String      @id @default(cuid())
+  projectId        String
+  project          Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  documentName     String
+  status           String      // "required", "provided", "missing", "needs_review"
+}
+
+model ReviewAction {
+  id               String           @id @default(cuid())
+  mappingId        String
+  mapping          EvidenceMapping  @relation(fields: [mappingId], references: [id], onDelete: Cascade)
+  action           String           // "confirmed", "corrected", "rejected"
+  previousStatus   String?
+  newStatus        String?
+  timestamp        DateTime         @default(now())
+}
