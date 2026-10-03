@@ -14,6 +14,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
+  // Redirect logged-in users away from login page to dashboard
   if (pathname === '/login' && hasAuthToken) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }

@@ -137,7 +137,7 @@ export default async function ReviewDashboard({ params }: { params: Promise<{ pr
               <div className="flex-1">
                 <h2 className="text-lg font-semibold mb-2 text-slate-900">Completion</h2>
                 <div className="flex items-center gap-4">
-                  <Progress value={completionPercentage} className="h-4 flex-1 bg-slate-100" />
+                  <Progress value={completionPercentage} className="h-4 flex-1 bg-transparent" />
                   <span className="font-bold text-2xl w-16 text-right text-slate-900">{completionPercentage}%</span>
                 </div>
                 <p className="text-sm text-slate-500 mt-2">
