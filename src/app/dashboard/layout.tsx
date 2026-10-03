@@ -1,4 +1,8 @@
 import Link from 'next/link';
+import { cookies } from 'next/headers';
+import { createServerClient } from '@insforge/sdk/ssr';
+import { redirect } from 'next/navigation';
+import { signOut } from '@/app/login/actions';
 import { 
   LayoutDashboard, 
   Files, 
@@ -11,7 +15,18 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const cookieStore = await cookies();
+  const insforge = createServerClient({ cookies: cookieStore });
+  
+  const { data: { user } } = await insforge.auth.getCurrentUser();
+  
+  if (!user) {
+    redirect('/login');
+  }
+
+  const initial = user.email ? user.email[0].toUpperCase() : 'U';
+
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
       {/* Sidebar */}
@@ -65,14 +80,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <HelpCircle className="h-4 w-4" />
             Support
           </Link>
-          <Link href="#" className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-50">
-            <LogOut className="h-4 w-4" />
-            Logout
-          </Link>
+          <form action={signOut}>
+            <button type="submit" className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-50">
+              <LogOut className="h-4 w-4" />
+              Logout
+            </button>
+          </form>
           
           <div className="mt-4 flex items-center px-3 gap-3">
             <div className="w-8 h-8 rounded-full bg-red-400 flex items-center justify-center text-white font-medium">
-              N
+              {initial}
+            </div>
+            <div className="text-sm font-medium text-slate-700 truncate max-w-[120px]">
+              {user.email}
             </div>
           </div>
         </div>
