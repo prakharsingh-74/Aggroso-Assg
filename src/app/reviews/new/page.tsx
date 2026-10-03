@@ -7,6 +7,51 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { FileText, X, AlertCircle } from 'lucide-react';
+import { useEffect } from 'react';
+
+const formatSize = (bytes: number) => {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+};
+
+const FileCard = ({ file, onRemove }: { file: File, onRemove: () => void }) => {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
+  return (
+    <div className="flex flex-col border rounded-md overflow-hidden bg-white shadow-sm">
+      <div className="flex items-center justify-between p-3 bg-slate-50 border-b">
+        <div className="flex items-center gap-3">
+          <FileText className="w-5 h-5 text-blue-500" />
+          <div className="text-sm">
+            <p className="font-medium text-slate-700 truncate max-w-[200px] sm:max-w-xs">{file.name}</p>
+            <p className="text-slate-500 text-xs">{formatSize(file.size)} • PDF</p>
+          </div>
+        </div>
+        <Button type="button" variant="ghost" size="icon" onClick={onRemove} className="text-slate-500 hover:text-red-500">
+          <X className="w-4 h-4" />
+        </Button>
+      </div>
+      <div className="h-64 w-full bg-slate-100">
+        {previewUrl && (
+          <iframe 
+            src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0`} 
+            className="w-full h-full border-none" 
+            title={file.name} 
+          />
+        )}
+      </div>
+    </div>
+  );
+};
 
 export default function NewReviewPage() {
   const router = useRouter();
@@ -43,28 +88,7 @@ export default function NewReviewPage() {
     setSupportingDocs(prev => prev.filter((_, i) => i !== index));
   };
 
-  const formatSize = (bytes: number) => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-  };
 
-  const FileCard = ({ file, onRemove }: { file: File, onRemove: () => void }) => (
-    <div className="flex items-center justify-between p-3 bg-slate-50 border rounded-md">
-      <div className="flex items-center gap-3">
-        <FileText className="w-5 h-5 text-blue-500" />
-        <div className="text-sm">
-          <p className="font-medium text-slate-700 truncate max-w-[200px] sm:max-w-xs">{file.name}</p>
-          <p className="text-slate-500 text-xs">{formatSize(file.size)} • PDF</p>
-        </div>
-      </div>
-      <Button variant="ghost" size="icon" onClick={onRemove} className="text-slate-500 hover:text-red-500">
-        <X className="w-4 h-4" />
-      </Button>
-    </div>
-  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,7 +116,7 @@ export default function NewReviewPage() {
       }
 
       const data = await res.json();
-      router.push(`/reviews/${data.projectId}/processing`);
+      router.push(`/reviews/${data.projectId}`);
     } catch (err: any) {
       setError(err.message || 'An error occurred.');
       setIsSubmitting(false);

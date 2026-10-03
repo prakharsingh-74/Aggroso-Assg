@@ -44,10 +44,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
 
         <div className="px-4 py-2">
-          <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white justify-start gap-2">
-            <Plus className="h-4 w-4" />
-            New Application
-          </Button>
+          <Link href="/reviews/new">
+            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white justify-start gap-2">
+              <Plus className="h-4 w-4" />
+              New Application
+            </Button>
+          </Link>
         </div>
 
         <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
@@ -55,14 +57,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <LayoutDashboard className="h-4 w-4" />
             Dashboard
           </Link>
-          <Link href="#" className="flex items-center justify-between px-3 py-2 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-50">
+          <Link href="/dashboard" className="flex items-center justify-between px-3 py-2 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-50">
             <div className="flex items-center gap-3">
               <Files className="h-4 w-4" />
               Recent Applications
             </div>
             <ChevronRight className="h-4 w-4" />
           </Link>
-          <Link href="#" className="flex items-center justify-between px-3 py-2 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-50">
+          <Link href="/dashboard" className="flex items-center justify-between px-3 py-2 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-50">
             <div className="flex items-center gap-3">
               <Settings className="h-4 w-4" />
               Settings

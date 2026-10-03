@@ -13,7 +13,7 @@ export default function RequirementCard({ mapping }: { mapping: any }) {
     new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   )[0];
   
-  const currentStatus = lastAction?.newStatus || mapping.status;
+  const currentStatus = lastAction?.new_status || mapping.status;
   const isCorrected = !!lastAction;
 
   const getStatusConfig = (status: string) => {
@@ -75,11 +75,11 @@ export default function RequirementCard({ mapping }: { mapping: any }) {
                 </p>
               </div>
               
-              {mapping.missingEvidence && (
+              {mapping.missing_evidence && (
                 <div>
                   <h4 className="text-xs font-semibold text-red-500 uppercase tracking-wider mb-1.5">Missing Info</h4>
                   <p className="text-sm text-red-700 leading-relaxed bg-red-50 p-3 rounded-md border border-red-100">
-                    {mapping.missingEvidence}
+                    {mapping.missing_evidence}
                   </p>
                 </div>
               )}
@@ -93,8 +93,8 @@ export default function RequirementCard({ mapping }: { mapping: any }) {
                       <div key={idx} className="bg-white border border-slate-200 rounded-md p-3 relative group">
                         <div className="flex items-center gap-2 mb-2">
                           <FileText className="w-3.5 h-3.5 text-blue-500" />
-                          <span className="text-xs font-medium text-slate-700">Document ID: {ev.documentId}</span>
-                          <span className="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">Page {ev.pageNumber}</span>
+                          <span className="text-xs font-medium text-slate-700">Document ID: {ev.document_id?.slice(-8)}</span>
+                          <span className="text-xs text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">Page {ev.page_number}</span>
                         </div>
                         <blockquote className="text-sm text-slate-600 border-l-2 border-blue-200 pl-3 italic">
                           "{ev.quote}"

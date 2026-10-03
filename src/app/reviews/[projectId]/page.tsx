@@ -4,10 +4,12 @@ import { Progress } from '@/components/ui/progress';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, ChevronLeft } from 'lucide-react';
 import RequirementCard from './RequirementCard';
+import Link from 'next/link';
 
-export default async function ReviewDashboard({ params }: { params: { projectId: string } }) {
+export default async function ReviewDashboard({ params }: { params: Promise<{ projectId: string }> }) {
+  const { projectId } = await params;
   const { data: project, error } = await insforge.database
     .from('projects')
     .select(`
@@ -22,7 +24,7 @@ export default async function ReviewDashboard({ params }: { params: { projectId:
         )
       )
     `)
-    .eq('id', params.projectId)
+    .eq('id', projectId)
     .single();
 
   if (!project || error) return notFound();
@@ -62,14 +64,22 @@ export default async function ReviewDashboard({ params }: { params: { projectId:
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 pb-20">
       <div className="bg-white border-b sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center max-w-5xl">
-          <div>
+        <div className="container mx-auto px-4 py-4 max-w-5xl">
+          <div className="mb-4">
+            <Link href="/dashboard" className="text-sm text-slate-500 hover:text-blue-600 flex items-center gap-1">
+              <ChevronLeft className="w-4 h-4" />
+              Back to Dashboard
+            </Link>
+          </div>
+          <div className="flex justify-between items-center">
+            <div>
             <h1 className="text-xl font-bold truncate max-w-[300px] sm:max-w-md">{project.name}</h1>
             <p className="text-sm text-slate-500">Assessment ID: {assessment.id.slice(-8)}</p>
           </div>
           <Badge variant={assessment.status === 'STALE' ? 'destructive' : 'secondary'} className="text-sm">
             {assessment.status === 'STALE' ? 'Assessment Stale' : 'Active'}
           </Badge>
+          </div>
         </div>
       </div>
 
