@@ -1,16 +1,22 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { signIn, signUp, signInWithGoogle } from './actions';
-import { LogIn, Lock, Mail, AlertCircle, CheckCircle2, User } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent } from '@/components/ui/card';
+import { Mail, Lock, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 
-export default function AuthPage() {
+export default function SignInForm() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
 
-  async function onSubmit(event: React.FormEvent<HTMLFormElement>, action: typeof signIn | typeof signUp | typeof signInWithGoogle) {
+  async function handlePasswordSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
     setError(null);
@@ -18,6 +24,7 @@ export default function AuthPage() {
 
     const formData = new FormData(event.currentTarget);
     try {
+      const action = isLogin ? signIn : signUp;
       const result = await action(formData);
       if (result && 'error' in result && result.error) {
         setError(result.error as string);
@@ -34,118 +41,155 @@ export default function AuthPage() {
     }
   }
 
+  async function handleGoogleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await signInWithGoogle();
+      if (result && 'error' in result && result.error) {
+        setError(result.error as string);
+      }
+    } catch (err: any) {
+      if (err.message === 'NEXT_REDIRECT') {
+        throw err;
+      }
+      setError(err.message || 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 p-4 z-1">
-      <div className="w-full max-w-sm bg-gradient-to-b from-sky-50/50 to-white rounded-3xl shadow-xl p-8 flex flex-col items-center border border-blue-100 text-black">
-        <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-white mb-6 shadow-md border border-slate-100">
-          <LogIn className="w-7 h-7 text-black" />
-        </div>
-        <h2 className="text-2xl font-semibold mb-2 text-center">
-          {isLogin ? "Sign in with email" : "Create an account"}
-        </h2>
-        <p className="text-gray-500 text-sm mb-6 text-center">
-          {isLogin 
-            ? "Sign in to review and manage your grant applications securely."
-            : "Register a new account to start reviewing applications."}
-        </p>
-
-        {error && (
-          <div className="w-full mb-4 p-3 rounded-xl bg-red-50 text-red-800 text-sm flex items-start gap-2 border border-red-100">
-            <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-            <span>{error}</span>
+    <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 p-4">
+      <Card className="w-full max-w-md rounded-2xl shadow-lg border border-slate-200 bg-white">
+        <CardContent className="p-8 flex flex-col gap-6">
+          <div className="text-center space-y-1">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+              {isLogin ? 'Welcome Back' : 'Create Account'}
+            </h1>
+            <p className="text-sm text-slate-500">
+              {isLogin ? 'Sign in to access your grant assessments' : 'Register to get started with Aggroso'}
+            </p>
           </div>
-        )}
-        {success && (
-          <div className="w-full mb-4 p-3 rounded-xl bg-emerald-50 text-emerald-800 text-sm flex items-start gap-2 border border-emerald-100">
-            <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" />
-            <span>{success}</span>
-          </div>
-        )}
 
-        <form className="w-full flex flex-col gap-3 mb-2" onSubmit={(e) => onSubmit(e, isLogin ? signIn : signUp)}>
-          {!isLogin && (
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                <User className="w-4 h-4" />
-              </span>
-              <input
-                name="name"
-                placeholder="Full Name (Optional)"
-                type="text"
-                className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-200 bg-gray-50 text-black text-sm transition-all"
-              />
+          {error && (
+            <div className="w-full p-3 rounded-xl bg-red-50 text-red-800 text-sm flex items-start gap-2 border border-red-100">
+              <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-red-600" />
+              <span>{error}</span>
             </div>
           )}
-          
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-              <Mail className="w-4 h-4" />
-            </span>
-            <input
-              name="email"
-              placeholder="Email"
-              type="email"
-              required
-              className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-200 bg-gray-50 text-black text-sm transition-all"
-            />
-          </div>
-          
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-              <Lock className="w-4 h-4" />
-            </span>
-            <input
-              name="password"
-              placeholder="Password"
-              type="password"
-              required
-              className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-200 bg-gray-50 text-black text-sm transition-all"
-            />
-          </div>
-          
-          <div className="w-full flex justify-between items-center mt-1">
-            <button 
-              type="button" 
-              onClick={() => setIsLogin(!isLogin)} 
-              className="text-xs text-blue-600 hover:underline font-medium"
-            >
-              {isLogin ? "Need an account?" : "Already have an account?"}
-            </button>
-            
-            {isLogin && (
-              <button type="button" className="text-xs text-gray-500 hover:underline font-medium">
+
+          {success && (
+            <div className="w-full p-3 rounded-xl bg-emerald-50 text-emerald-800 text-sm flex items-start gap-2 border border-emerald-100">
+              <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-emerald-600" />
+              <span>{success}</span>
+            </div>
+          )}
+
+          <form onSubmit={handlePasswordSubmit} className="flex flex-col gap-4">
+            {/* Email */}
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="email">Email</Label>
+              <div className="flex items-center gap-2 border border-slate-200 rounded-lg px-3 h-12 focus-within:ring-2 focus-within:ring-blue-500 bg-slate-50/50">
+                <Mail className="h-5 w-5 text-slate-400 shrink-0" />
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  placeholder="Enter your email"
+                  className="border-0 shadow-none focus-visible:ring-0 bg-transparent text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Password */}
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center gap-2 border border-slate-200 rounded-lg px-3 h-12 focus-within:ring-2 focus-within:ring-blue-500 bg-slate-50/50">
+                <Lock className="h-5 w-5 text-slate-400 shrink-0" />
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  placeholder="Enter your password"
+                  className="border-0 shadow-none focus-visible:ring-0 bg-transparent text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Remember me & Forgot */}
+            <div className="flex items-center justify-between pt-1">
+              <div className="flex items-center space-x-2">
+                <Checkbox id="remember" />
+                <Label htmlFor="remember" className="text-sm font-normal text-slate-600 cursor-pointer">
+                  Remember me
+                </Label>
+              </div>
+              <button type="button" className="text-sm text-blue-600 hover:underline font-medium">
                 Forgot password?
               </button>
-            )}
-          </div>
-          
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-gradient-to-b from-gray-700 to-gray-900 text-white font-medium py-2.5 rounded-xl shadow hover:brightness-105 cursor-pointer transition mb-4 mt-2 disabled:opacity-70 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Processing...' : (isLogin ? 'Get Started' : 'Create Account')}
-          </button>
-        </form>
+            </div>
 
-        <div className="flex items-center w-full my-2">
-          <div className="flex-grow border-t border-dashed border-gray-200"></div>
-          <span className="mx-2 text-xs text-gray-400">Or continue with</span>
-          <div className="flex-grow border-t border-dashed border-gray-200"></div>
-        </div>
-        
-        <div className="flex gap-3 w-full justify-center mt-4">
-          <form onSubmit={(e) => onSubmit(e, signInWithGoogle)} className="grow">
-            <button type="submit" className="flex items-center justify-center w-full h-12 rounded-xl border bg-white hover:bg-gray-50 transition">
-              <img
-                src="https://cdn.21st.dev/assets/mirror/38/38146bfd9eff6dbf0d74771f2e625c70d87d3770e0d080dbb6e50db1d5403f46.svg"
-                alt="Google"
-                className="w-5 h-5"
-              />
-            </button>
+            {/* Submit */}
+            <Button type="submit" disabled={loading} className="w-full h-12 text-base font-medium rounded-lg mt-2">
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Processing...
+                </span>
+              ) : isLogin ? (
+                'Sign In'
+              ) : (
+                'Sign Up'
+              )}
+            </Button>
           </form>
-        </div>
-      </div>
+
+          {/* Divider */}
+          <div className="flex items-center w-full my-1">
+            <div className="flex-grow border-t border-slate-200"></div>
+            <span className="mx-3 text-xs text-slate-400 uppercase font-medium">Or</span>
+            <div className="flex-grow border-t border-slate-200"></div>
+          </div>
+
+          {/* Social login button (Google Only) */}
+          <form onSubmit={handleGoogleSubmit} className="w-full">
+            <Button
+              type="submit"
+              variant="outline"
+              disabled={loading}
+              className="w-full h-12 rounded-lg flex items-center justify-center gap-3 border-slate-200 hover:bg-slate-50 font-medium cursor-pointer"
+            >
+              <Image
+                src="https://cdn.21st.dev/assets/mirror/ba/ba9d249c43ce2f6a5beb69cd4db26ead682241b2b45d1b7d971a4dd70cdf4bc3.svg"
+                alt="Google"
+                width={20}
+                height={20}
+              />
+              Continue with Google
+            </Button>
+          </form>
+
+          {/* Signup toggle */}
+          <p className="text-center text-sm text-slate-500 mt-1">
+            {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
+            <button
+              type="button"
+              onClick={() => {
+                setIsLogin(!isLogin);
+                setError(null);
+                setSuccess(null);
+              }}
+              className="text-blue-600 font-semibold cursor-pointer hover:underline ml-1"
+            >
+              {isLogin ? 'Sign Up' : 'Sign In'}
+            </button>
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 }
