@@ -33,7 +33,6 @@ export default function RequirementCard({ mapping }: { mapping: any }) {
       <div className={`h-1.5 w-full ${color.split(' ')[0]}`} />
       <CardContent className="p-0">
         
-        {/* Header */}
         <div 
           className="p-5 cursor-pointer flex items-start justify-between gap-4"
           onClick={() => setExpanded(!expanded)}

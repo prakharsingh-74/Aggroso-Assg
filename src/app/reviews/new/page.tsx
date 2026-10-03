@@ -1,13 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { FileText, X, AlertCircle } from 'lucide-react';
-import { useEffect } from 'react';
+import { FileText, Trash2, AlertCircle } from 'lucide-react';
 
 const formatSize = (bytes: number) => {
   if (bytes === 0) return '0 B';
@@ -17,24 +16,31 @@ const formatSize = (bytes: number) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 };
 
-const FileItem = ({ file, onRemove }: { file: File, onRemove: () => void }) => {
+const FileItem = ({ file, onRemove }: { file: File; onRemove: () => void }) => {
   return (
-    <div className="flex items-center justify-between p-3 bg-slate-50 border rounded-md shadow-sm">
-      <div className="flex items-center gap-3">
-        <FileText className="w-5 h-5 text-blue-500" />
-        <div className="text-sm">
+    <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-md shadow-sm hover:border-slate-300 transition-colors">
+      <div className="flex items-center gap-3 min-w-0">
+        <FileText className="w-5 h-5 text-red-500 flex-shrink-0" />
+        <div className="text-sm min-w-0">
           <p className="font-medium text-slate-700 truncate max-w-[200px]">{file.name}</p>
           <p className="text-slate-500 text-xs">{formatSize(file.size)} • PDF</p>
         </div>
       </div>
-      <Button type="button" variant="ghost" size="icon" onClick={onRemove} className="text-slate-500 hover:text-red-500">
-        <X className="w-4 h-4" />
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        onClick={onRemove}
+        className="text-slate-400 hover:text-red-600 hover:bg-red-50 h-8 w-8 rounded-md transition-colors flex-shrink-0"
+        title="Delete File"
+      >
+        <Trash2 className="w-4 h-4" />
       </Button>
     </div>
   );
 };
 
-const PreviewFrame = ({ file }: { file: File }) => {
+const PreviewFrame = ({ file, onDelete }: { file: File; onDelete?: () => void }) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -44,17 +50,31 @@ const PreviewFrame = ({ file }: { file: File }) => {
   }, [file]);
 
   return (
-    <div className="flex flex-col h-full bg-white border rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-      <div className="px-4 py-3 bg-white border-b flex items-center gap-2">
-        <FileText className="w-4 h-4 text-red-500 flex-shrink-0" />
-        <span className="text-sm font-medium text-slate-700 truncate">{file.name}</span>
+    <div className="flex flex-col h-full bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow relative">
+      <div className="px-4 py-3 bg-white border-b border-slate-200 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <FileText className="w-4 h-4 text-red-500 flex-shrink-0" />
+          <span className="text-sm font-medium text-slate-700 truncate">{file.name}</span>
+        </div>
+        {onDelete && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={onDelete}
+            className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors flex-shrink-0"
+            title="Delete File"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        )}
       </div>
       <div className="flex-1 bg-slate-50/50 p-2">
         {previewUrl && (
-          <iframe 
-            src={`${previewUrl}#toolbar=0&navpanes=0`} 
-            className="w-full h-full border border-slate-200 rounded-lg shadow-sm bg-white" 
-            title={file.name} 
+          <iframe
+            src={`${previewUrl}#toolbar=0&navpanes=0`}
+            className="w-full h-full border border-slate-200 rounded-lg shadow-sm bg-white"
+            title={file.name}
           />
         )}
       </div>
@@ -98,7 +118,17 @@ export default function NewReviewPage() {
     setSupportingDocs(prev => prev.filter((_, i) => i !== index));
   };
 
-
+  const removeFile = (fileToRemove: File) => {
+    if (guideline === fileToRemove) {
+      setGuideline(null);
+      if (step === 'preview') setStep('upload');
+    } else if (application === fileToRemove) {
+      setApplication(null);
+      if (step === 'preview') setStep('upload');
+    } else {
+      setSupportingDocs(prev => prev.filter(f => f !== fileToRemove));
+    }
+  };
 
   const handlePreview = (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,7 +150,7 @@ export default function NewReviewPage() {
       formData.append('guideline', guideline);
       formData.append('application', application);
       supportingDocs.forEach(doc => formData.append('supporting', doc));
-      
+
       const res = await fetch('/api/projects', {
         method: 'POST',
         body: formData,
@@ -179,7 +209,7 @@ export default function NewReviewPage() {
               <div className="space-y-3">
                 <Label className="text-sm font-semibold">3. Supporting Documents (Optional)</Label>
                 <Input type="file" accept="application/pdf" multiple onChange={handleMultipleFilesChange} className="cursor-pointer" />
-                
+
                 {supportingDocs.length > 0 && (
                   <div className="space-y-2 pt-2">
                     {supportingDocs.map((file, i) => (
@@ -213,7 +243,7 @@ export default function NewReviewPage() {
             <Button variant="outline" onClick={() => setStep('upload')} className="flex-1 sm:flex-none h-11 px-6">
               Back to Upload
             </Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting} className="flex-1 sm:flex-none h-11 px-8">
+            <Button onClick={handleSubmit} disabled={isSubmitting || !guideline || !application} className="flex-1 sm:flex-none h-11 px-8">
               {isSubmitting ? 'Analyzing...' : 'Start AI Analysis'}
             </Button>
           </div>
@@ -229,7 +259,7 @@ export default function NewReviewPage() {
           }`}>
             {allFiles.map((f, i) => (
               <div key={i} className="w-full h-full min-h-0">
-                <PreviewFrame file={f} />
+                <PreviewFrame file={f} onDelete={() => removeFile(f)} />
               </div>
             ))}
           </div>

@@ -5,6 +5,8 @@ import { Plus, ArrowRight, FileText } from 'lucide-react';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@insforge/sdk/ssr';
 
+import ProjectCard from './ProjectCard';
+
 export default async function DashboardPage() {
   const cookieStore = await cookies();
   const insforge = createServerClient({ cookies: cookieStore });
@@ -46,12 +48,7 @@ export default async function DashboardPage() {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
             {projectList.map((project: any) => (
-              <Link href={`/reviews/${project.id}`} key={project.id} className="block group">
-                <Card className="hover:shadow-md transition-all border-slate-200 flex flex-col items-center justify-center p-6 h-48 bg-white cursor-pointer group-hover:border-slate-300">
-                  <FileText className="w-12 h-12 text-red-500 mb-4 stroke-[1.5]" />
-                  <h3 className="font-semibold text-slate-800 text-center text-sm px-2 line-clamp-2 w-full">{project.name}</h3>
-                </Card>
-              </Link>
+              <ProjectCard key={project.id} project={project} />
             ))}
           </div>
         )}
