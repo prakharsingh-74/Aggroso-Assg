@@ -1,45 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { insforge } from '@/lib/insforge';
 import crypto from 'crypto';
-import fs from 'fs/promises';
-import path from 'path';
-
-
-const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
-
-async function ensureUploadsDir() {
-  try {
-    await fs.access(UPLOADS_DIR);
-  } catch {
-    await fs.mkdir(UPLOADS_DIR, { recursive: true });
-  }
-}
-
-async function processFile(file: File, type: string, projectId: string) {
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-  const hash = crypto.createHash('sha256').update(buffer).digest('hex');
-  
-  const ext = path.extname(file.name);
-  const uniqueFilename = `${crypto.randomUUID()}${ext}`;
-  const filePath = path.join(UPLOADS_DIR, uniqueFilename);
-  
-  await fs.writeFile(filePath, buffer);
-
-  const { data: document, error } = await insforge.database.from('documents').insert([{
-    project_id: projectId,
-    type,
-    filename: file.name,
-    file_hash: hash,
-  }]).select().single();
-  if (error) throw error;
-  return document;
-}
-
 export async function POST(req: NextRequest) {
   try {
-    await ensureUploadsDir();
-
     const formData = await req.formData();
     const guideline = formData.get('guideline') as File;
     const application = formData.get('application') as File;
@@ -63,13 +26,14 @@ export async function POST(req: NextRequest) {
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
       const hash = crypto.createHash('sha256').update(buffer).digest('hex');
-      const filePath = path.join(UPLOADS_DIR, `${hash}.pdf`);
+      const objectKey = `${hash}.pdf`;
       
-      // Save only if it doesn't exist
-      try {
-        await fs.access(filePath);
-      } catch {
-        await fs.writeFile(filePath, buffer);
+      // Upload to InsForge Storage
+      const { error: uploadError } = await insforge.storage.from('documents').upload(objectKey, file);
+      
+      if (uploadError) {
+        console.error('Storage upload error:', uploadError);
+        throw new Error('Failed to upload file to storage');
       }
 
       const { data: document, error } = await insforge.database.from('documents').insert([{

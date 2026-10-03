@@ -4,6 +4,33 @@ import { cookies } from 'next/headers';
 import { createAuthActions, createServerClient } from '@insforge/sdk/ssr';
 import { redirect } from 'next/navigation';
 
+export async function signInWithGoogle(formData?: FormData) {
+  const cookieStore = await cookies();
+  const auth = createAuthActions({ cookies: cookieStore });
+  
+  const { data, error } = await auth.signInWithOAuth('google', {
+    redirectTo: process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/callback` : 'http://localhost:3000/api/auth/callback',
+    skipBrowserRedirect: true,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  if (data?.codeVerifier) {
+    cookieStore.set('insforge_oauth_verifier', data.codeVerifier, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/'
+    });
+  }
+
+  if (data?.url) {
+    redirect(data.url);
+  }
+}
+
 export async function signIn(formData: FormData) {
   const email = String(formData.get('email'));
   const password = String(formData.get('password'));
