@@ -22,15 +22,39 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Delete project from database
-    const { error } = await insforge.database
+    // Retrieve all document records of the project to get their file hashes
+    const { data: docs } = await insforge.database
+      .from('documents')
+      .select('file_hash')
+      .eq('project_id', id);
+
+    // Delete project from storage
+    const { error: deleteDbError } = await insforge.database
       .from('projects')
       .delete()
       .eq('id', id);
 
-    if (error) {
-      console.error('Error deleting project:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (deleteDbError) {
+      console.error('Error deleting project from database:', deleteDbError);
+      return NextResponse.json({ error: deleteDbError.message }, { status: 500 });
+    }
+
+    // Delete all object files from Storage bucket
+    if (docs && docs.length > 0) {
+      const objectKeys = docs
+        .map((d: any) => d.file_hash)
+        .filter(Boolean)
+        .map((hash: string) => `${hash}.pdf`);
+
+      if (objectKeys.length > 0) {
+        const { error: storageError } = await insforge.storage
+          .from('documents')
+          .remove(objectKeys);
+
+        if (storageError) {
+          console.error('Error deleting PDF files from InsForge storage:', storageError);
+        }
+      }
     }
 
     return NextResponse.json({ success: true });
@@ -56,12 +80,11 @@ export async function PATCH(
       return NextResponse.json({ error: 'Document name is required' }, { status: 400 });
     }
 
-    const sanitizedName = name.trim().slice(0, 200); // Sanitize name length
+    const sanitizedName = name.trim().slice(0, 200);
 
     const cookieStore = await cookies();
     const insforge = createServerClient({ cookies: cookieStore });
 
-    // Enforce authentication
     const { data: { user }, error: authError } = await insforge.auth.getCurrentUser();
     if (!user || authError) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
