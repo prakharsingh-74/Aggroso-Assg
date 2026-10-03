@@ -114,7 +114,7 @@ OR
 Populate the required keys in `.env.local`:
 
 ```env
-NEXT_PUBLIC_INSFORGE_URL=https://3q7gyfhb.us-east.insforge.app
+NEXT_PUBLIC_INSFORGE_URL=your_insforge_url_here
 NEXT_PUBLIC_INSFORGE_ANON_KEY=your_insforge_anon_key_here
 GEMINI_API_KEY=your_google_gemini_api_key_here
 ```
@@ -134,12 +134,15 @@ GEMINI_API_KEY=your_google_gemini_api_key_here
    npm install
    ```
 
-3. **Run Development Server:**
+3. **Database Migration Setup:**
+   After setting up your project on InsForge, open the **SQL Editor** in the InsForge dashboard, copy the contents of [`migrations/0001.sql`](migrations/0001.sql), and run the SQL query to create all required database tables (`projects`, `documents`, `assessments`, `requirements`, `evidence_mappings`, `evidences`, `unsupported_claims`, `clarification_questions`, `review_actions`).
+
+4. **Run Development Server:**
    ```bash
    npm run dev
    ```
 
-4. **Access Application:**
+5. **Access Application:**
    Open [http://localhost:3000](http://localhost:3000) in your web browser.
 
 ---
@@ -171,6 +174,7 @@ GEMINI_API_KEY=your_google_gemini_api_key_here
 
 ## Deployment & Hosting Details
 
-- **Hosting Platform:** Vercel / Netlify / Node.js production server.
-- **Backend Service:** InsForge Cloud (Postgres database & S3-compatible file storage).
-- **Environment Setup:** Ensure `NEXT_PUBLIC_INSFORGE_URL`, `NEXT_PUBLIC_INSFORGE_ANON_KEY`, `GEMINI_API_KEY` are configured in your production environment settings.
+- **Live Application URL:** [https://3q7gyfhb.insforge.site](https://3q7gyfhb.insforge.site)
+- **Deployment Platform:** InsForge Cloud Deployments
+- **Backend Service:** InsForge Cloud (Postgres Database & Storage)
+- **Environment Setup:** `NEXT_PUBLIC_INSFORGE_URL`, `NEXT_PUBLIC_INSFORGE_ANON_KEY`, and `GEMINI_API_KEY` are configured.
