@@ -26,12 +26,6 @@ export default async function DashboardPage() {
       {/* Header Area */}
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-slate-900">Workspace</h1>
-        <Link href="/reviews/new">
-          <Button className="gap-2 px-6 h-10">
-            <Plus className="h-4 w-4" />
-            Upload PDF File
-          </Button>
-        </Link>
       </div>
 
       {/* Projects Section */}
