@@ -117,6 +117,7 @@ Populate the required keys in `.env.local`:
 NEXT_PUBLIC_INSFORGE_URL=your_insforge_url_here
 NEXT_PUBLIC_INSFORGE_ANON_KEY=your_insforge_anon_key_here
 GEMINI_API_KEY=your_google_gemini_api_key_here
+NEXT_PUBLIC_APP_URL=https://your_app_domain.site
 ```
 
 ---
