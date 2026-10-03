@@ -17,7 +17,24 @@ const formatSize = (bytes: number) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 };
 
-const FileCard = ({ file, onRemove }: { file: File, onRemove: () => void }) => {
+const FileItem = ({ file, onRemove }: { file: File, onRemove: () => void }) => {
+  return (
+    <div className="flex items-center justify-between p-3 bg-slate-50 border rounded-md shadow-sm">
+      <div className="flex items-center gap-3">
+        <FileText className="w-5 h-5 text-blue-500" />
+        <div className="text-sm">
+          <p className="font-medium text-slate-700 truncate max-w-[200px]">{file.name}</p>
+          <p className="text-slate-500 text-xs">{formatSize(file.size)} • PDF</p>
+        </div>
+      </div>
+      <Button type="button" variant="ghost" size="icon" onClick={onRemove} className="text-slate-500 hover:text-red-500">
+        <X className="w-4 h-4" />
+      </Button>
+    </div>
+  );
+};
+
+const PreviewFrame = ({ file }: { file: File }) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -27,24 +44,16 @@ const FileCard = ({ file, onRemove }: { file: File, onRemove: () => void }) => {
   }, [file]);
 
   return (
-    <div className="flex flex-col border rounded-md overflow-hidden bg-white shadow-sm">
-      <div className="flex items-center justify-between p-3 bg-slate-50 border-b">
-        <div className="flex items-center gap-3">
-          <FileText className="w-5 h-5 text-blue-500" />
-          <div className="text-sm">
-            <p className="font-medium text-slate-700 truncate max-w-[200px] sm:max-w-xs">{file.name}</p>
-            <p className="text-slate-500 text-xs">{formatSize(file.size)} • PDF</p>
-          </div>
-        </div>
-        <Button type="button" variant="ghost" size="icon" onClick={onRemove} className="text-slate-500 hover:text-red-500">
-          <X className="w-4 h-4" />
-        </Button>
+    <div className="flex flex-col h-full bg-white border rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+      <div className="px-4 py-3 bg-white border-b flex items-center gap-2">
+        <FileText className="w-4 h-4 text-red-500 flex-shrink-0" />
+        <span className="text-sm font-medium text-slate-700 truncate">{file.name}</span>
       </div>
-      <div className="h-64 w-full bg-slate-100">
+      <div className="flex-1 bg-slate-50/50 p-2">
         {previewUrl && (
           <iframe 
-            src={`${previewUrl}#toolbar=0&navpanes=0&scrollbar=0`} 
-            className="w-full h-full border-none" 
+            src={`${previewUrl}#toolbar=0&navpanes=0`} 
+            className="w-full h-full border border-slate-200 rounded-lg shadow-sm bg-white" 
             title={file.name} 
           />
         )}
@@ -55,6 +64,7 @@ const FileCard = ({ file, onRemove }: { file: File, onRemove: () => void }) => {
 
 export default function NewReviewPage() {
   const router = useRouter();
+  const [step, setStep] = useState<'upload' | 'preview'>('upload');
   const [guideline, setGuideline] = useState<File | null>(null);
   const [application, setApplication] = useState<File | null>(null);
   const [supportingDocs, setSupportingDocs] = useState<File[]>([]);
@@ -90,12 +100,17 @@ export default function NewReviewPage() {
 
 
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handlePreview = (e: React.FormEvent) => {
     e.preventDefault();
     if (!guideline || !application) {
       setError('Guideline and Draft Application are required.');
       return;
     }
+    setStep('preview');
+  };
+
+  const handleSubmit = async () => {
+    if (!guideline || !application) return;
 
     setIsSubmitting(true);
     setError(null);
@@ -120,73 +135,105 @@ export default function NewReviewPage() {
     } catch (err: any) {
       setError(err.message || 'An error occurred.');
       setIsSubmitting(false);
+      setStep('upload'); // go back on error
     }
   };
 
-  return (
-    <div className="min-h-screen bg-slate-50 py-12 px-4">
-      <div className="max-w-3xl mx-auto space-y-6">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-slate-900">Start a Review</h1>
-          <p className="text-slate-600 mt-2">Upload your documents to begin the completeness assessment.</p>
-        </div>
+  const allFiles = [guideline, application, ...supportingDocs].filter(Boolean) as File[];
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Documents</CardTitle>
-            <CardDescription>Only PDF files are supported.</CardDescription>
+  if (step === 'upload') {
+    return (
+      <div className="min-h-screen bg-slate-900/40 flex items-center justify-center p-4 backdrop-blur-sm">
+        <Card className="w-full max-w-lg shadow-2xl border-none">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl">Upload Documents</CardTitle>
+            <CardDescription>Select your PDF files to begin.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-8">
+            <form onSubmit={handlePreview} className="space-y-6">
               {error && (
-                <div className="flex items-center gap-2 p-4 text-red-700 bg-red-50 rounded-md text-sm">
+                <div className="flex items-center gap-2 p-3 text-red-700 bg-red-50 rounded-md text-sm">
                   <AlertCircle className="w-4 h-4" />
                   {error}
                 </div>
               )}
 
-              <div className="space-y-4">
-                <Label className="text-base font-semibold">1. Grant Guideline (Required)</Label>
-                <p className="text-sm text-slate-500">The official requirements from the funder.</p>
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold">1. Grant Guideline (Required)</Label>
                 {!guideline ? (
                   <Input type="file" accept="application/pdf" onChange={(e) => handleFileChange(e, setGuideline)} className="cursor-pointer" />
                 ) : (
-                  <FileCard file={guideline} onRemove={() => setGuideline(null)} />
+                  <FileItem file={guideline} onRemove={() => setGuideline(null)} />
                 )}
               </div>
 
-              <div className="space-y-4">
-                <Label className="text-base font-semibold">2. Draft Application (Required)</Label>
-                <p className="text-sm text-slate-500">The application document you want to review.</p>
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold">2. Draft Application (Required)</Label>
                 {!application ? (
                   <Input type="file" accept="application/pdf" onChange={(e) => handleFileChange(e, setApplication)} className="cursor-pointer" />
                 ) : (
-                  <FileCard file={application} onRemove={() => setApplication(null)} />
+                  <FileItem file={application} onRemove={() => setApplication(null)} />
                 )}
               </div>
 
-              <div className="space-y-4">
-                <Label className="text-base font-semibold">3. Supporting Documents (Optional)</Label>
-                <p className="text-sm text-slate-500">Upload multiple files like budgets, registration certificates, etc.</p>
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold">3. Supporting Documents (Optional)</Label>
                 <Input type="file" accept="application/pdf" multiple onChange={handleMultipleFilesChange} className="cursor-pointer" />
                 
                 {supportingDocs.length > 0 && (
-                  <div className="space-y-2 mt-4">
+                  <div className="space-y-2 pt-2">
                     {supportingDocs.map((file, i) => (
-                      <FileCard key={i} file={file} onRemove={() => removeSupportingDoc(i)} />
+                      <FileItem key={i} file={file} onRemove={() => removeSupportingDoc(i)} />
                     ))}
                   </div>
                 )}
               </div>
 
-              <div className="pt-4 flex justify-end">
-                <Button type="submit" size="lg" disabled={isSubmitting || !guideline || !application} className="w-full sm:w-auto">
-                  {isSubmitting ? 'Uploading...' : 'Start Analysis'}
+              <div className="pt-4">
+                <Button type="submit" size="lg" disabled={!guideline || !application} className="w-full h-12">
+                  Preview Documents
                 </Button>
               </div>
             </form>
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-screen w-screen overflow-hidden bg-slate-50 flex flex-col p-4 lg:p-8">
+      <div className="max-w-[1600px] mx-auto w-full h-full flex flex-col">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4 flex-shrink-0">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Document Preview</h1>
+            <p className="text-slate-500 mt-1 text-sm">Review your selected PDFs before starting the analysis.</p>
+          </div>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <Button variant="outline" onClick={() => setStep('upload')} className="flex-1 sm:flex-none h-11 px-6">
+              Back to Upload
+            </Button>
+            <Button onClick={handleSubmit} disabled={isSubmitting} className="flex-1 sm:flex-none h-11 px-8">
+              {isSubmitting ? 'Analyzing...' : 'Start AI Analysis'}
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 p-6 min-h-0 flex flex-col overflow-hidden">
+          <div className={`w-full h-full grid gap-6 ${
+            allFiles.length === 1 ? 'grid-cols-1 grid-rows-1' :
+            allFiles.length === 2 ? 'grid-cols-2 grid-rows-1' :
+            allFiles.length === 3 ? 'grid-cols-3 grid-rows-1' :
+            allFiles.length === 4 ? 'grid-cols-2 grid-rows-2' :
+            'grid-cols-3 grid-rows-2'
+          }`}>
+            {allFiles.map((f, i) => (
+              <div key={i} className="w-full h-full min-h-0">
+                <PreviewFrame file={f} />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

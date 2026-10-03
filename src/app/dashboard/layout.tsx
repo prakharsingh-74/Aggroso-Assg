@@ -5,13 +5,8 @@ import { redirect } from 'next/navigation';
 import { signOut } from '@/app/login/actions';
 import { 
   LayoutDashboard, 
-  Files, 
-  Settings, 
-  HelpCircle, 
   LogOut, 
-  Plus, 
-  ChevronRight,
-  Bell
+  Plus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -33,55 +28,27 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <aside className="w-64 bg-white border-r border-slate-200 flex flex-col h-full">
         <div className="p-4 flex items-center justify-between">
           <div className="flex items-center gap-2 font-bold text-xl text-slate-800">
-            <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs">
-              G
-            </div>
-            GrantFlow
+            Logoipsum
           </div>
-          <Button variant="ghost" size="icon" className="h-6 w-6">
-            <ChevronRight className="h-4 w-4 text-slate-400" />
-          </Button>
         </div>
 
         <div className="px-4 py-2">
-          <Link href="/reviews/new">
-            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white justify-start gap-2">
+          <Link href="/reviews/new" className="block w-full">
+            <Button className="w-full justify-center gap-2 h-12">
               <Plus className="h-4 w-4" />
-              New Application
+              Upload PDF File
             </Button>
           </Link>
         </div>
 
-        <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
-          <Link href="/dashboard" className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md text-blue-600 bg-blue-50">
-            <LayoutDashboard className="h-4 w-4" />
-            Dashboard
-          </Link>
-          <Link href="/dashboard" className="flex items-center justify-between px-3 py-2 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-50">
-            <div className="flex items-center gap-3">
-              <Files className="h-4 w-4" />
-              Recent Applications
-            </div>
-            <ChevronRight className="h-4 w-4" />
-          </Link>
-          <Link href="/dashboard" className="flex items-center justify-between px-3 py-2 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-50">
-            <div className="flex items-center gap-3">
-              <Settings className="h-4 w-4" />
-              Settings
-            </div>
-            <ChevronRight className="h-4 w-4" />
+        <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
+          <Link href="/dashboard" className="flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-md text-slate-900 bg-slate-200">
+            <LayoutDashboard className="h-5 w-5" />
+            Workspace
           </Link>
         </nav>
 
-        <div className="p-4 border-t border-slate-200 space-y-2">
-          <Link href="#" className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-50">
-            <Plus className="h-4 w-4" />
-            Organisation name
-          </Link>
-          <Link href="#" className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-50">
-            <HelpCircle className="h-4 w-4" />
-            Support
-          </Link>
+        <div className="p-4 space-y-2">
           <form action={signOut}>
             <button type="submit" className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md text-slate-600 hover:bg-slate-50">
               <LogOut className="h-4 w-4" />
@@ -102,12 +69,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col h-full overflow-hidden">
-        {/* Top Header */}
-        <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-end px-6">
-          <Button variant="ghost" size="icon" className="text-slate-500">
-            <Bell className="h-5 w-5" />
-          </Button>
-        </header>
+        {/* Top Header Removed to match design */}
+
 
         {/* Scrollable Page Content */}
         <div className="flex-1 overflow-auto bg-white">

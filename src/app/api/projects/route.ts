@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { insforge } from '@/lib/insforge';
+import { cookies } from 'next/headers';
+import { createServerClient } from '@insforge/sdk/ssr';
 import crypto from 'crypto';
 import { GoogleGenAI } from '@google/genai';
 export async function POST(req: NextRequest) {
   try {
+    const cookieStore = await cookies();
+    const insforge = createServerClient({ cookies: cookieStore });
+    
     const formData = await req.formData();
     const guideline = formData.get('guideline') as File;
     const application = formData.get('application') as File;
