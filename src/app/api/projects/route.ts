@@ -198,10 +198,12 @@ export async function POST(req: NextRequest) {
           }]).select().single();
 
           if (dbReq) {
+            const validStatuses = ['complete', 'weak', 'missing', 'not_applicable'];
+            const statusValue = req.status && validStatuses.includes(req.status) ? req.status : 'missing';
             const { data: mapRecord } = await insforge.database.from('evidence_mappings').insert([{
               assessment_id: assessment.id,
               requirement_id: dbReq.id,
-              status: ['complete', 'weak', 'missing', 'not_applicable'].includes(req.status) ? req.status : 'missing',
+              status: statusValue,
               explanation: req.explanation || '',
               missing_evidence: req.missing_evidence || null,
               confidence: req.confidence || 'medium'

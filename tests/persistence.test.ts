@@ -37,19 +37,25 @@ export function buildDatabaseRecords(projectId: string, aiOutput: any, applicati
     const reqId = `req-${i + 1}`;
     const mapId = `map-${i + 1}`;
 
+    const validImportances = ['mandatory', 'recommended', 'informational'];
+    const importanceValue = req.importance && validImportances.includes(req.importance) ? req.importance : 'mandatory';
+
     requirementsRecords.push({
       id: reqId,
       project_id: projectId,
-      text: req.text,
+      text: req.text || 'Untitled Requirement',
       category: req.category || 'General',
-      importance: ['mandatory', 'recommended', 'informational'].includes(req.importance) ? req.importance : 'mandatory',
+      importance: importanceValue,
     });
+
+    const validStatuses = ['complete', 'weak', 'missing', 'not_applicable'];
+    const statusValue = req.status && validStatuses.includes(req.status) ? req.status : 'missing';
 
     mappingsRecords.push({
       id: mapId,
       assessment_id: 'assessment-test-1',
       requirement_id: reqId,
-      status: ['complete', 'weak', 'missing', 'not_applicable'].includes(req.status) ? req.status : 'missing',
+      status: statusValue,
       explanation: req.explanation || '',
       missing_evidence: req.missing_evidence || null,
       confidence: req.confidence || 'medium'
@@ -65,9 +71,9 @@ export function buildDatabaseRecords(projectId: string, aiOutput: any, applicati
     }
   }
 
-  const questionsRecords = result.clarification_questions.map((q: string) => ({
+  const questionsRecords = result.clarification_questions.map((q) => ({
     assessment_id: 'assessment-test-1',
-    question: q
+    question: typeof q === 'string' ? q : JSON.stringify(q)
   }));
 
   const claimsRecords = result.unsupported_claims.map((c: any) => ({
