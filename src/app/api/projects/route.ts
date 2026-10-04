@@ -3,10 +3,11 @@ import { cookies } from 'next/headers';
 import { createServerClient } from '@insforge/sdk/ssr';
 import crypto from 'crypto';
 import { GoogleGenAI } from '@google/genai';
-
-const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB
+import { logger, calculateGeminiCost } from '@/lib/logger';
+import { validateUploadPayload, parseAiResultWithFallback } from '@/lib/validator';
 
 export async function POST(req: NextRequest) {
+  const startTime = Date.now();
   try {
     const cookieStore = await cookies();
     const insforge = createServerClient({ cookies: cookieStore });
@@ -14,6 +15,12 @@ export async function POST(req: NextRequest) {
     // Authentication check
     const { data: { user }, error: authError } = await insforge.auth.getCurrentUser();
     if (!user || authError) {
+      logger.warn('Unauthorized project upload attempt', {
+        event: 'auth_failed',
+        endpoint: '/api/projects',
+        durationMs: Date.now() - startTime,
+        status: 'warning'
+      });
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -22,19 +29,18 @@ export async function POST(req: NextRequest) {
     const application = formData.get('application') as File;
     const supporting = formData.getAll('supporting') as File[];
 
-    if (!guideline || !application) {
-      return NextResponse.json({ error: 'Guideline and Application files are required.' }, { status: 400 });
-    }
-
     // Server-side file validation
-    const filesToValidate = [guideline, application, ...supporting];
-    for (const f of filesToValidate) {
-      if (!f || f.type !== 'application/pdf') {
-        return NextResponse.json({ error: `File "${f?.name || 'unknown'}" is not a valid PDF.` }, { status: 400 });
-      }
-      if (f.size > MAX_FILE_SIZE) {
-        return NextResponse.json({ error: `File "${f.name}" exceeds the maximum allowed size of 25MB.` }, { status: 400 });
-      }
+    const validation = validateUploadPayload(guideline, application, supporting);
+    if (!validation.valid) {
+      logger.warn('File upload validation failed', {
+        event: 'validation_failed',
+        userId: user.id,
+        endpoint: '/api/projects',
+        error: validation.error,
+        durationMs: Date.now() - startTime,
+        status: 'warning'
+      });
+      return NextResponse.json({ error: validation.error }, { status: validation.status || 400 });
     }
 
     const projectName = `Review - ${new Date().toLocaleString()}`;
@@ -59,7 +65,12 @@ export async function POST(req: NextRequest) {
       // Upload to InsForge Storage
       const { error: uploadError } = await insforge.storage.from('documents').upload(objectKey, file);
       if (uploadError) {
-        console.error('Storage upload error:', uploadError);
+        logger.error('Failed to upload document to storage', {
+          event: 'storage_upload_error',
+          projectId: project.id,
+          userId: user.id,
+          error: uploadError.message || String(uploadError)
+        });
         throw new Error(`Failed to upload ${file.name} to storage.`);
       }
 
@@ -74,7 +85,7 @@ export async function POST(req: NextRequest) {
       return documentRecord;
     };
 
-    const guidelineDoc = await saveFileWithHash(guideline, 'GUIDELINE');
+    await saveFileWithHash(guideline, 'GUIDELINE');
     const applicationDoc = await saveFileWithHash(application, 'DRAFT_APPLICATION');
 
     for (const doc of supporting) {
@@ -133,6 +144,7 @@ export async function POST(req: NextRequest) {
         }
       `;
 
+      const aiStartTime = Date.now();
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: [
@@ -151,22 +163,33 @@ export async function POST(req: NextRequest) {
         }
       });
 
-      let result: any = {};
-      try {
-        result = JSON.parse(response.text || '{}');
-      } catch (parseErr) {
-        console.error('Failed to parse AI JSON response:', parseErr);
-        result = {};
-      }
+      const aiDurationMs = Date.now() - aiStartTime;
+      const usageMetadata = (response as any).usageMetadata || {};
+      const promptTokens = usageMetadata.promptTokenCount || 0;
+      const responseTokens = usageMetadata.candidatesTokenCount || 0;
+      const totalTokens = usageMetadata.totalTokenCount || (promptTokens + responseTokens);
+      const costUsd = calculateGeminiCost(promptTokens, responseTokens);
+
+      const result = parseAiResultWithFallback(response.text);
+
+      logger.info('Gemini AI analysis completed successfully', {
+        event: 'ai_analysis_completed',
+        projectId: project.id,
+        userId: user.id,
+        durationMs: aiDurationMs,
+        tokens: { promptTokens, responseTokens, totalTokens },
+        costUsd,
+        status: result.isFallback ? 'warning' : 'success'
+      });
 
       const { data: assessment } = await insforge.database.from('assessments').insert([{
         project_id: project.id,
         status: 'COMPLETED',
-        completion_percentage: typeof result.completion_percentage === 'number' ? result.completion_percentage : 0
+        completion_percentage: result.completion_percentage
       }]).select().single();
 
       if (assessment) {
-        for (const req of result.requirements || []) {
+        for (const req of result.requirements) {
           const { data: dbReq } = await insforge.database.from('requirements').insert([{
             project_id: project.id,
             text: req.text,
@@ -195,7 +218,7 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        for (const q of result.clarification_questions || []) {
+        for (const q of result.clarification_questions) {
           if (q) {
             await insforge.database.from('clarification_questions').insert([{
               assessment_id: assessment.id,
@@ -204,7 +227,7 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        for (const claim of result.unsupported_claims || []) {
+        for (const claim of result.unsupported_claims) {
           if (claim && claim.claim) {
             await insforge.database.from('unsupported_claims').insert([{
               assessment_id: assessment.id,
@@ -218,9 +241,16 @@ export async function POST(req: NextRequest) {
           }
         }
       }
-    } catch (aiError) {
-      console.error('AI Processing Error:', aiError);
-      // Create a fallback assessment entry if AI failed so the project remains usable
+    } catch (aiError: any) {
+      logger.error('AI Processing Error - triggering fallback assessment', {
+        event: 'ai_fallback_triggered',
+        projectId: project.id,
+        userId: user.id,
+        error: aiError.message || String(aiError),
+        status: 'error'
+      });
+
+      // Create fallback assessment entry so project remains usable
       await insforge.database.from('assessments').insert([{
         project_id: project.id,
         status: 'COMPLETED',
@@ -228,9 +258,22 @@ export async function POST(req: NextRequest) {
       }]);
     }
 
+    logger.info('Project creation and assessment completed', {
+      event: 'project_created',
+      projectId: project.id,
+      userId: user.id,
+      durationMs: Date.now() - startTime,
+      status: 'success'
+    });
+
     return NextResponse.json({ projectId: project.id, success: true });
   } catch (error: any) {
-    console.error('Error creating project:', error);
+    logger.error('Error creating project', {
+      event: 'project_creation_failed',
+      error: error.message || String(error),
+      durationMs: Date.now() - startTime,
+      status: 'error'
+    });
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

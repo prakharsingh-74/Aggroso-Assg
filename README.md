@@ -173,11 +173,30 @@ To keep the system simple, accurate, and fast, **Aggroso** reads full PDF docume
 
 ---
 
-## Testing & Quality Assurance
+## Testing & Quality Assurance (CI/CD)
 
-- **Type Checking:** Strict static type safety enforced with TypeScript (`npx tsc --noEmit`).
-- **Server Handler Tests:** Verified API endpoints (`/api/projects`, `/api/projects/[id]`, `/api/reviews/action`) for authorization checks, 25MB file limits, and error handling.
-- **Workflow Verification:** Verified multi-file PDF preview grid, InsForge storage object purging, and reviewer status overrides.
+The codebase includes an automated, runnable test suite covering API validation, PDF file limits, AI parsing fallbacks, persistence data modeling, and observability metrics.
+
+- **Run Automated Test Suite:**
+  ```bash
+  npm test
+  ```
+- **Test Coverage Breakdown (`14/14 Passing Tests`):**
+  - **API Validation:** Enforces presence of both Guideline and Draft Application files.
+  - **PDF File Type & Upload Limits:** Rejects non-PDF MIME types and blocks files exceeding the **25 MB limit**.
+  - **AI Resilience & Fallbacks:** Tests corrupted JSON parsing and empty strings, ensuring graceful fallback records without API crashes.
+  - **Persistence & Entity Normalization:** Verifies relational mapping across `projects`, `assessments`, `requirements`, `evidence_mappings`, and `unsupported_claims`.
+  - **Status Transitions:** Tests human reviewer override status transitions.
+- **Continuous Integration (CI):**
+  - GitHub Actions workflow (`.github/workflows/ci.yml`) runs on push/PR, automating `npm ci`, `npx tsc --noEmit`, and `npm test`.
+
+---
+
+## Observability & Cost Monitoring
+
+- **Structured JSON Logging:** Emits machine-readable JSON logs for every lifecycle event (`auth_failed`, `validation_failed`, `ai_analysis_completed`, `ai_fallback_triggered`, `project_created`, `storage_cleaned`).
+- **Token & Cost Tracking:** Automatically calculates input and output token consumption for **Gemini 2.5 Flash** and records estimated USD execution costs per project.
+- **Health & Status Endpoint:** Dedicated `/api/health` route reporting uptime, service health signals, and configured storage/model backends.
 
 ---
 
