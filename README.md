@@ -158,6 +158,21 @@ NEXT_PUBLIC_APP_URL=https://your_app_domain.site
 
 ---
 
+## Architectural Trade-Offs (Direct Reading vs. RAG Search)
+
+To keep the system simple, accurate, and fast, **Aggroso** reads full PDF documents directly with Gemini AI instead of using **RAG** (breaking documents into small text chunks for database search):
+
+- **Why We Did This (Benefits):**
+  - **Keeps Tables & Pages Intact:** Reading the full PDF keeps tables, budget figures, and exact page numbers fully intact without breaking them into pieces.
+  - **Sees the Whole Picture:** The AI can easily connect rules on page 2 with answers on page 20 because it reads everything together.
+  - **Simpler & Faster:** No extra database code or search setup needed. Results return in just 2 to 4 seconds.
+
+- **What We Gave Up (Trade-Offs):**
+  - **Very Huge Files (1000+ Pages):** For giant files with thousands of pages, database search (RAG) is better than sending the whole file.
+  - **Searching All Past Projects:** RAG allows searching across years of past project archives at once. Our app focuses on analyzing one project's files at a time.
+
+---
+
 ## Testing & Quality Assurance
 
 - **Type Checking:** Strict static type safety enforced with TypeScript (`npx tsc --noEmit`).
