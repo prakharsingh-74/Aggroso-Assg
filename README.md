@@ -4,9 +4,6 @@ Aggroso is an AI-powered enterprise platform designed to review draft funding an
 
 It performs an **evidence-based completeness assessment** using **Google Gemini 2.5 Flash** and **InsForge BaaS**. The system extracts eligibility and submission requirements from guidelines, matches exact evidence quotes from draft applications, flags unverified/unsupported claims, generates clarification questions, and provides an interactive 5-tab review dashboard with human-in-the-loop status overrides.
 
-> [!IMPORTANT]
-> **Disclaimer:** This tool provides an evidence-based completeness review. It does NOT make authoritative legal or funding-eligibility decisions. The final submission decision remains with the user and the grant organization.
-
 ---
 
 ## Key Features
@@ -58,7 +55,7 @@ It performs an **evidence-based completeness assessment** using **Google Gemini 
 
 ## Tech Stack
 
-- **Framework:** [Next.js 15](https://nextjs.org/) (App Router, TypeScript, React 19)
+- **Framework:** [Next.js 16](https://nextjs.org/) (App Router, TypeScript, React 19)
 - **Backend as a Service (BaaS):** [InsForge](https://insforge.dev) (Postgres Database, RLS, File Storage, Auth)
 - **AI Model:** [Google Gemini 2.5 Flash](https://ai.google.dev/) via `@google/genai`
 - **Styling & UI:** Tailwind CSS v4, `@shadcn/ui`, Lucide Icons, Google Fonts (`Inter` & `Plus Jakarta Sans`)
